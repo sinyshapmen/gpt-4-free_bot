@@ -1,0 +1,52 @@
+[tool.poetry]
+name = "gpt-4-free-bot"
+version = "0.1.0"
+description = "This is a telegram bot for using OpenAi for free (currently in development)"
+authors = ["sinyshapmen"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pytelegrambotapi = "^4.24.0"
+g4f = "^0.3.4.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+lint.select = ["ALL"] # Enable all available linters
+
+preview = true # Enable preview features
+
+# Im not sure i want to explain all of this
+lint.ignore = [
+    "TD002",
+    "TD003",
+    "FIX002",
+    "D101",
+    "RUF003",
+    "RUF002",
+    "RUF001",
+    "S311",
+    "CPY",
+    "S104"
+]
+
+# My personal preferences
+line-length = 88
+indent-width = 4
+
+[tool.mypy] # Mypy configuration required for type checking
+python_version = "3.12"
+strict = true
+
+ignore_missing_imports = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_unused_ignores = true
+show_error_codes = true
+
+disable_error_code = ["import-untyped", "misc", "no-any-return", "name-defined"]

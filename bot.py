@@ -2,21 +2,27 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import tomllib
 from g4f.client import Client
+from g4f.cookies import read_cookie_files, set_cookies_dir
 from g4f.Provider import (
-    ChatgptNext,
     Gemini,
     Liaobots,
+    OpenaiChat,
 )
-from telebot import TeleBot, logger
+from g4f.Provider.openai.har_file import NoValidHarFileError
+from telebot import TeleBot
 from telebot.apihelper import ApiTelegramException
 
 if TYPE_CHECKING:
     from telebot.types import Message
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # TODO: remove global variables access in functions
 context: dict[int, list[dict[str, str]]] = {}
@@ -24,7 +30,13 @@ commands = ["/start", "/ask", "/reset"]
 
 with Path("config.toml").open("rb") as f:
     config = tomllib.load(f)
-token = config["token"]
+token = config["bot"]["token"]
+model_name = config["gpt"].get("model", "gpt-4o")
+
+# setup cookies
+cookies_dir = Path(__file__).parent / "har_and_cookies"
+set_cookies_dir(cookies_dir)
+read_cookie_files(cookies_dir)
 
 bot = TeleBot(token)
 logger.info("bot polling")
@@ -97,17 +109,18 @@ def process_ask_command(message: Message) -> None:
 
     """
     user_input = message.text
+    user_id = message.from_user.id
     search = bot.send_message(message.chat.id, "Идет генерация...")
+    logger.info("user %s asked: %s", user_id, user_input)
 
     while True:
-        client = Client(provider=ChatgptNext, image_provider=Gemini)
+        client = Client(provider=OpenaiChat, image_provider=Gemini)
         try:
             # check if the user's message is the first message
             if message.chat.id not in context:
                 response = client.chat.completions.create(
-                    model="gpt-3.5",
+                    model=model_name or "gpt-4o",
                     messages=[{"role": "user", "content": user_input}],
-                    auth=True,
                 )
                 # Get the generated text from the response
                 generated_text = response.choices[0].message.content
@@ -136,9 +149,14 @@ def process_ask_command(message: Message) -> None:
             )
             send_chunks(message.chat.id, generated_text)
             bot.register_next_step_handler(message, process_user_response)
-        except ApiTelegramException as e:
-            logger.error(e)
-            continue
+        except NoValidHarFileError:
+            logger.exception(
+                "No valid .har file\nFor more information, see: https://github.com/xtekky/gpt4free?tab=readme-ov-file#using-har-and-cookie-files",
+            )
+            return
+        except ApiTelegramException:
+            logger.exception("Got an error from the Telegram API!")
+            return
         else:
             return
 
@@ -186,8 +204,8 @@ def process_user_response(message: Message) -> None:
                 {"role": "assistant", "content": generated_text},
             )
             bot.register_next_step_handler(message, process_user_response)
-        except ApiTelegramException as e:
-            logger.error(e)
+        except ApiTelegramException:
+            logger.exception("Got an error from the Telegram API!")
             continue
 
 

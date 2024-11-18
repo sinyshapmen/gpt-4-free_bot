@@ -1,2 +1,5 @@
 [bot]
 token="" # telegram bot token from @BotFather
+
+[gpt]
+model="" # Model name; default (if empty): gpt-4o

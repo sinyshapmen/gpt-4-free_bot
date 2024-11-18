@@ -113,6 +113,7 @@ def process_ask_command(message: Message) -> None:
     search = bot.send_message(message.chat.id, "Идет генерация...")
     logger.info("user %s asked: %s", user_id, user_input)
 
+    action_timeout = 600
     while True:
         client = Client(provider=OpenaiChat, image_provider=Gemini)
         try:
@@ -136,11 +137,11 @@ def process_ask_command(message: Message) -> None:
 
             context[message.chat.id].append({"role": "user", "content": user_input})
             response = client.chat.completions.create(
-                model="gpt-3.5",
+                model=model_name or "gpt-4o",
                 messages=context[message.chat.id],
             )
 
-            bot.send_chat_action(message.chat.id, "typing", 600)
+            bot.send_chat_action(message.chat.id, "typing", action_timeout)
             generated_text = response.choices[0].message.content
             bot.delete_message(message.chat.id, search.message_id)
 
@@ -193,7 +194,7 @@ def process_user_response(message: Message) -> None:
         try:
             context[message.chat.id].append({"role": "user", "content": user_input})
             response = client.chat.completions.create(
-                model="gpt-3.5",
+                model=model_name or "gpt-4o",
                 messages=context[message.chat.id],
             )
             bot.send_chat_action(message.chat.id, "typing", action_timeout)

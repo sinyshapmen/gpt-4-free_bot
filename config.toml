@@ -1,5 +1,5 @@
 [bot]
-token="" # telegram bot token from @BotFather
+token="6004641414:AAFCtTSB5h0KHmY4yzB77EZT_mk-i_BmNo0" # telegram bot token from @BotFather
 
 [gpt]
 model="" # Model name; default (if empty): gpt-4o

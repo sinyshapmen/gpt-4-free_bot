@@ -186,7 +186,9 @@ def process_user_response(message: Message) -> None:
 
     """
     user_input = message.text
+    user_id = message.from_user.id
     search = bot.send_message(message.chat.id, "Идет генерация...")
+    logger.info("user %s asked: %s", user_id, user_input)
 
     action_timeout = 600
     while True:
@@ -197,17 +199,25 @@ def process_user_response(message: Message) -> None:
                 model=model_name or "gpt-4o",
                 messages=context[message.chat.id],
             )
+            # Get the generated text from the response
             bot.send_chat_action(message.chat.id, "typing", action_timeout)
             generated_text = response.choices[0].message.content
+
             bot.delete_message(message.chat.id, search.message_id)
+
+            # Send the generated text as a single message
+            logger.info("got response to %s: %s", user_id, generated_text)
             send_chunks(message.chat.id, generated_text)
             context[message.chat.id].append(
                 {"role": "assistant", "content": generated_text},
             )
+
             bot.register_next_step_handler(message, process_user_response)
         except ApiTelegramException:
             logger.exception("Got an error from the Telegram API!")
             continue
+        else:
+            return
 
 
 if __name__ == "__main__":
